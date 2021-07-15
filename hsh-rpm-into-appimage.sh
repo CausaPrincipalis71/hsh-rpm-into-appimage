@@ -116,13 +116,29 @@ if [[ $? -ne 0 ]]
     then echo -e "\tPackage doesn\`t exist, please, check it out"; exit 1;
 fi
 
-# Getting files of package
-EXECUTABLE=$(hsh-run $PATH_TO_HASHER -- bash -c "rpmquery --list $PACKAGE | grep -e \"/usr/bin/\" -m 1")
-ICON=$(hsh-run $PATH_TO_HASHER -- bash -c "rpmquery --list $PACKAGE | grep -e \".png\" -m 1")
-DESKTOP_FILE=$(hsh-run $PATH_TO_HASHER -- bash -c "rpmquery --list $PACKAGE | grep -e \".desktop\" -m 1")
-
 # Make an AppDir
 hsh-run $PATH_TO_HASHER -- bash -c "mkdir /usr/src/tmp/AppDir && mkdir /usr/src/tmp/AppDir/usr && mkdir /usr/src/tmp/AppDir/usr/bin && mkdir /usr/src/tmp/AppDir/usr/share/ && mkdir /usr/src/tmp/AppDir/usr/share/icons && mkdir /usr/src/tmp/AppDir/usr/share/applications"
+
+# Getting desktop file of package
+DESKTOP_FILE=$(hsh-run $PATH_TO_HASHER -- bash -c "rpmquery --list $PACKAGE | grep -e \".desktop\" -m 1")
+# Parsing it for executable, icon and name
+PACKAGE_NAME=$(hsh-run $PATH_TO_HASHER -- bash -c "cat $DESKTOP_FILE | grep -e \"^Exec\" -m 1 | sed 's/Exec=//g' | cut -d' ' -f1" | sed 's/ /_/g')
+PACKAGE_TITLE=$(hsh-run $PATH_TO_HASHER -- bash -c "cat $DESKTOP_FILE | grep -e \"Name\" -m 1 | sed 's/Name=//g'")
+ICON_NAME=$(hsh-run $PATH_TO_HASHER -- bash -c "cat $DESKTOP_FILE | grep -e \"Icon\" -m 1 | sed 's/Icon=//g'")
+# Finding executable and icon files
+EXECUTABLE=$(hsh-run $PATH_TO_HASHER -- bash -c "rpmquery --list $PACKAGE | grep -e \"/bin/$PACKAGE_NAME\" -m 1")
+ICON=$(hsh-run $PATH_TO_HASHER -- bash -c "rpmquery --list $PACKAGE | grep -e \"$ICON_NAME.png\" -m 1")
+
+# If icon is not found
+if ["$ICON" = ""]
+    then
+    # Install adwaita icons
+    hsh-install $PATH_TO_HASHER icon-theme-adwaita
+    # And set is as default
+    hsh-run $PATH_TO_HASHER -- bash -c "cp /usr/share/icons/Adwaita/256x256/legacy/user-info.png /usr/src/tmp/AppDir/usr/share/icons/$ICON_NAME.png"
+    ICON="/usr/src/tmp/AppDir/usr/share/icons/$ICON_NAME.png"
+fi
+
 
 # If there are no linuxdeploy
 if [ ! -d /tmp/linuxdeploy ]
@@ -135,7 +151,7 @@ if [ ! -d /tmp/linuxdeploy ]
         do
         if [[ "$plugin" = "qt" ]] 
             # Downloading qt plugin and adding it in linuxdeploy 
-            then hsh-install $PATH_TO_HASHER qt5-base-devel
+            then hsh-install $PATH_TO_HASHER qt5-base-devel qt5-declarative-devel
             cd /tmp/linuxdeploy/plugins && wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage && chmod +x ./linuxdeploy-plugin-qt-x86_64.AppImage && ./linuxdeploy-plugin-qt-x86_64.AppImage --appimage-extract && mv ./squashfs-root ./linuxdeploy-plugin-qt && cd -
             ln -s /tmp/linuxdeploy/plugins/linuxdeploy-plugin-qt/AppRun /tmp/linuxdeploy/usr/bin/linuxdeploy-plugin-qt
         #elif [[ "$plugin" = "python" ]]
@@ -146,7 +162,8 @@ if [ ! -d /tmp/linuxdeploy ]
 fi
 
 mv /tmp/linuxdeploy/ $PATH_TO_HASHER/chroot/tmp
+echo "/tmp/linuxdeploy/AppRun --appdir /usr/src/tmp/AppDir --executable $EXECUTABLE --desktop-file $DESKTOP_FILE --icon-file $ICON $plugins_with_arguments --output appimage"
 
 hsh-run --mountpoints=/proc $PATH_TO_HASHER -- bash -c "cd /usr/src/tmp && /tmp/linuxdeploy/AppRun --appdir /usr/src/tmp/AppDir --executable $EXECUTABLE --desktop-file $DESKTOP_FILE --icon-file $ICON $plugins_with_arguments --output appimage"
 
-echo -e "Done, you can find your appimage in $PATH_TO_HASHER/chroot/usr/src/tmp"
+echo -e "Done, you can find your appimage in $PATH_TO_HASHER/chroot/usr/src/tmp/$(hsh-run $PATH_TO_HASHER -- bash -c "ls ~/tmp/ | grep -e \"$PACKAGE_TITLE\" ")"
