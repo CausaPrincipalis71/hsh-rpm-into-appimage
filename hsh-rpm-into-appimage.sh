@@ -109,14 +109,6 @@ if [[ $? -ne 0 ]]
     then echo -e "\tPlease, add allowed_mountpoints=/proc in /etc/hasher-priv/system"; exit 1;
 fi
 
-# Searching for nameservers in hasher-chroot
-grep -q -e "nameserver" "$PATH_TO_HASHER/chroot/etc/resolv.conf"
-
-# If there are no nameservers, then add 8.8.8.8
-if [[ $? -ne 0 ]]
-    then hsh-run --rooter $PATH_TO_HASHER -- sh -c "echo nameserver 8.8.8.8 > /etc/resolv.conf"
-fi
-
 hsh-install $PATH_TO_HASHER wget $PACKAGE 
 
 # End script, if hsh cannot install package
@@ -124,26 +116,37 @@ if [[ $? -ne 0 ]]
     then echo -e "\tPackage doesn\`t exist, please, check it out"; exit 1;
 fi
 
-# Installing linuxdeploy
-share_network=yes hsh-run --mountpoints=/proc $PATH_TO_HASHER -- bash -c "cd /usr/src/tmp/ && wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage && chmod +x ./linuxdeploy-x86_64.AppImage && ./linuxdeploy-x86_64.AppImage --appimage-extract && mv ./squashfs-root ./linuxdeploy"
+# Getting files of package
+EXECUTABLE=$(hsh-run $PATH_TO_HASHER -- bash -c "rpmquery --list $PACKAGE | grep -e \"/usr/bin/\" -m 1")
+ICON=$(hsh-run $PATH_TO_HASHER -- bash -c "rpmquery --list $PACKAGE | grep -e \".png\" -m 1")
+DESKTOP_FILE=$(hsh-run $PATH_TO_HASHER -- bash -c "rpmquery --list $PACKAGE | grep -e \".desktop\" -m 1")
 
 # Make an AppDir
 hsh-run $PATH_TO_HASHER -- bash -c "mkdir /usr/src/tmp/AppDir && mkdir /usr/src/tmp/AppDir/usr && mkdir /usr/src/tmp/AppDir/usr/bin && mkdir /usr/src/tmp/AppDir/usr/share/ && mkdir /usr/src/tmp/AppDir/usr/share/icons && mkdir /usr/src/tmp/AppDir/usr/share/applications"
 
-# Adding stuff in AppDir
-hsh-run $PATH_TO_HASHER -- bash -c "cp /usr/bin/$PACKAGE /usr/src/tmp/AppDir/usr/bin/ && cp /usr/share/applications/$PACKAGE.desktop /usr/src/tmp/AppDir/usr/share/applications/ && cp /usr/share/icons/hicolor/64x64/apps/$PACKAGE.png /usr/src/tmp/AppDir/usr/share/icons/"
+# If there are no linuxdeploy
+if [ ! -d /tmp/linuxdeploy ]
+    # Installing linuxdeploy
+    then
+    cd /tmp && wget -c -N https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage && chmod +x ./linuxdeploy-x86_64.AppImage && ./linuxdeploy-x86_64.AppImage --appimage-extract && mv ./squashfs-root ./linuxdeploy && cd -
 
-# adding plugins in linuxdeploy
-for plugin in ${PLUGINS[*]}
-    do
-    if [[ "$plugin" = "qt" ]] 
-        # Downloading qt plugin and adding it in linuxdeploy 
-        then hsh-install $PATH_TO_HASHER qt5-base-devel
-        share_network=1 hsh-run --mountpoints=/proc $PATH_TO_HASHER -- bash -c "cd /usr/src/tmp/linuxdeploy/plugins && wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage && chmod +x ./linuxdeploy-plugin-qt-x86_64.AppImage && ./linuxdeploy-plugin-qt-x86_64.AppImage --appimage-extract && mv ./squashfs-root ./linuxdeploy-plugin-qt"
-        hsh-run $PATH_TO_HASHER -- bash -c "ln -s /usr/src/tmp/linuxdeploy/plugins/linuxdeploy-plugin-qt/AppRun /usr/src/tmp/linuxdeploy/usr/bin/linuxdeploy-plugin-qt"
-    fi
-done
+    # adding plugins in linuxdeploy
+    for plugin in ${PLUGINS[*]}
+        do
+        if [[ "$plugin" = "qt" ]] 
+            # Downloading qt plugin and adding it in linuxdeploy 
+            then hsh-install $PATH_TO_HASHER qt5-base-devel
+            cd /tmp/linuxdeploy/plugins && wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage && chmod +x ./linuxdeploy-plugin-qt-x86_64.AppImage && ./linuxdeploy-plugin-qt-x86_64.AppImage --appimage-extract && mv ./squashfs-root ./linuxdeploy-plugin-qt && cd -
+            ln -s /tmp/linuxdeploy/plugins/linuxdeploy-plugin-qt/AppRun /tmp/linuxdeploy/usr/bin/linuxdeploy-plugin-qt
+        #elif [[ "$plugin" = "python" ]]
+            # Downloading python plugin and adding it in linuxdeploy
+            #then
+        fi
+    done
+fi
 
-hsh-run --mountpoints=/proc $PATH_TO_HASHER -- bash -c "cd /usr/src/tmp && /usr/src/tmp/linuxdeploy/AppRun --appdir /usr/src/tmp/AppDir --executable /usr/src/tmp/AppDir/usr/bin/$PACKAGE --desktop-file /usr/src/tmp/AppDir/usr/share/applications/$PACKAGE.desktop --icon-file /usr/src/tmp/AppDir/usr/share/icons/$PACKAGE.png $plugins_with_arguments --output appimage"
+mv /tmp/linuxdeploy/ $PATH_TO_HASHER/chroot/tmp
+
+hsh-run --mountpoints=/proc $PATH_TO_HASHER -- bash -c "cd /usr/src/tmp && /tmp/linuxdeploy/AppRun --appdir /usr/src/tmp/AppDir --executable $EXECUTABLE --desktop-file $DESKTOP_FILE --icon-file $ICON $plugins_with_arguments --output appimage"
 
 echo -e "Done, you can find your appimage in $PATH_TO_HASHER/chroot/usr/src/tmp"
