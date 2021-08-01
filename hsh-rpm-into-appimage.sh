@@ -117,32 +117,51 @@ if [[ $? -ne 0 ]]
 fi
 
 # Make an AppDir
-hsh-run $PATH_TO_HASHER -- bash -c "mkdir /usr/src/tmp/AppDir && mkdir /usr/src/tmp/AppDir/usr && mkdir /usr/src/tmp/AppDir/usr/bin && mkdir /usr/src/tmp/AppDir/usr/share/ && mkdir /usr/src/tmp/AppDir/usr/share/icons && mkdir /usr/src/tmp/AppDir/usr/share/applications"
+hsh-run $PATH_TO_HASHER -- bash -c "mkdir /tmp/AppDir"
+
+
+# Copy RPM to hasher
+cp $PATH_TO_HASHER/aptbox/var/cache/apt/archives/$PACKAGE*.rpm $PATH_TO_HASHER/chroot/tmp/
+# Extract .rpm into appdir
+hsh-run $PATH_TO_HASHER -- bash -c "cd /tmp/AppDir && rpm2cpio /tmp/$PACKAGE*.rpm | cpio -idmv"
 
 # Getting desktop file of package
-DESKTOP_FILE=$(hsh-run $PATH_TO_HASHER -- bash -c "rpmquery --list $PACKAGE | grep -e \".desktop\" -m 1")
+DESKTOP_FILE+="/tmp/AppDir"
+DESKTOP_FILE+=$(hsh-run $PATH_TO_HASHER -- bash -c "rpmquery --list $PACKAGE | grep -e \".desktop\" -m 1")
+echo "DESKTOP_FILE=$DESKTOP_FILE"
 # Parsing it for executable, icon and name
-PACKAGE_NAME=$(hsh-run $PATH_TO_HASHER -- bash -c "cat $DESKTOP_FILE | grep -e \"^Exec\" -m 1 | sed 's/Exec=//g' | cut -d' ' -f1" | sed 's/ /_/g')
-PACKAGE_TITLE=$(hsh-run $PATH_TO_HASHER -- bash -c "cat $DESKTOP_FILE | grep -e \"Name\" -m 1 | sed 's/Name=//g'")
-ICON_NAME=$(hsh-run $PATH_TO_HASHER -- bash -c "cat $DESKTOP_FILE | grep -e \"Icon=\" -m 1 | sed 's/Icon=//g'")
+PACKAGE_NAME=$(hsh-run $PATH_TO_HASHER -- bash -c "cat $DESKTOP_FILE | grep -e \"^Exec=\" -m 1 | sed 's/Exec=//g' | cut -d' ' -f1" | sed 's/ /_/g')
+echo "PACKAGE_NAME=$PACKAGE_NAME"
+PACKAGE_TITLE=$(hsh-run $PATH_TO_HASHER -- bash -c "cat $DESKTOP_FILE | grep -e \"^Name=\" -m 1 | sed 's/Name=//g'")
+echo "PACKAGE_TITLE=$PACKAGE_TITLE"
+ICON_NAME=$(hsh-run $PATH_TO_HASHER -- bash -c "cat $DESKTOP_FILE | grep -e \"^Icon=\" -m 1 | sed 's/Icon=//g'")
+echo "ICON_NAME=$ICON_NAME"
 # Finding executable and icon files
-EXECUTABLE=$(hsh-run $PATH_TO_HASHER -- bash -c "rpmquery --list $PACKAGE | grep -e \"/bin/$PACKAGE_NAME\" -m 1")
-ICON=$(hsh-run $PATH_TO_HASHER -- bash -c "rpmquery --list $PACKAGE | grep -e \"$ICON_NAME.png\" -m 1")
+EXECUTABLE+="/tmp/AppDir"
+EXECUTABLE+=$(hsh-run $PATH_TO_HASHER -- bash -c "rpmquery --list $PACKAGE | grep -e \"/bin/$PACKAGE_NAME\" -m 1")
+echo "EXECUTABLE=$EXECUTABLE"
+
+ICON+="/tmp/AppDir"
+ICON+=$(hsh-run $PATH_TO_HASHER -- bash -c "rpmquery --list $PACKAGE | grep -e \"$ICON_NAME.png\" -m 1")
+echo "ICON=$ICON"
 
 # If icon is not found
-if ["$ICON" = ""]
+if [[ "$ICON" = "/tmp/AppDir" ]]
     then
     # Install adwaita icons
+    echo "Icon not found"
     hsh-install $PATH_TO_HASHER icon-theme-adwaita
     # And set is as default
     # If there are no Icon name
-    if ["$ICON_NAME" = ""]
+    if [[ "$ICON_NAME" = "" ]]
     then
         # Set same name like 
-        ICON_NAME=$(echo "$EXECUTABLE" | cut -d'/' -f4)
+        ICON_NAME= "$PACKAGE"
     fi
-    hsh-run $PATH_TO_HASHER -- bash -c "cp /usr/share/icons/Adwaita/256x256/legacy/user-info.png /usr/src/tmp/AppDir/usr/share/icons/$ICON_NAME.png"
-    ICON="/usr/src/tmp/AppDir/usr/share/icons/$ICON_NAME.png"
+
+    hsh-run $PATH_TO_HASHER -- bash -c "mkdir /tmp/AppDir/usr/share/icons/"
+    hsh-run $PATH_TO_HASHER -- bash -c "cp /usr/share/icons/Adwaita/256x256/legacy/user-info.png /tmp/AppDir/usr/share/icons/$ICON_NAME.png"
+    ICON="/tmp/AppDir/usr/share/icons/$ICON_NAME.png"
 fi
 
 
@@ -170,13 +189,11 @@ if [ ! -d /tmp/linuxdeploy ]
             then
             hsh-install $PATH_TO_HASHER libncurses-devel libncurses++-devel termutils-devel 
             cd /tmp/linuxdeploy/usr/bin/ && wget https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-ncurses/master/linuxdeploy-plugin-ncurses.sh && chmod +x ./linuxdeploy-plugin-ncurses.sh && cd -
-        fi
         elif [[ "$plugin" = "gstreamer" ]]
             #Downloading python plugin and adding it in linuxdeploy
             then
             hsh-install $PATH_TO_HASHER gstreamer-devel patchelf
             cd /tmp/linuxdeploy/usr/bin/ && wget https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gstreamer/master/linuxdeploy-plugin-gstreamer.sh && chmod +x ./linuxdeploy-plugin-gstreamer.sh && cd -
-        fi
         elif [[ "$plugin" = "python" ]]
             #Downloading python plugin and adding it in linuxdeploy
             then
@@ -189,15 +206,15 @@ fi
 mv /tmp/linuxdeploy/ $PATH_TO_HASHER/chroot/tmp
 
 # If there are no desktop file
-if ["$DESKTOP_FILE" = ""]
+if [ "$DESKTOP_FILE" = "" ]
     then
     # Use --create-desktop-file option
-    echo "/tmp/linuxdeploy/AppRun --appdir /usr/src/tmp/AppDir --executable $EXECUTABLE --create-desktop-file --icon-file $ICON $plugins_with_arguments --output appimage"
-    hsh-run --mountpoints=/proc $PATH_TO_HASHER -- bash -c "cd /usr/src/tmp && /tmp/linuxdeploy/AppRun --appdir /usr/src/tmp/AppDir --executable $EXECUTABLE --create-desktop-file --icon-file $ICON $plugins_with_arguments --output appimage"
+    echo "/tmp/linuxdeploy/AppRun --appdir /tmp/AppDir --executable $EXECUTABLE --create-desktop-file --icon-file $ICON $plugins_with_arguments --output appimage"
+    hsh-run --mountpoints=/proc $PATH_TO_HASHER -- bash -c "cd /tmp && /tmp/linuxdeploy/AppRun --appdir /tmp/AppDir --executable $EXECUTABLE --create-desktop-file --icon-file $ICON $plugins_with_arguments --output appimage"
     else
     # Use .desktop file if it exists
-    echo "/tmp/linuxdeploy/AppRun --appdir /usr/src/tmp/AppDir --executable $EXECUTABLE --desktop-file $DESKTOP_FILE --icon-file $ICON $plugins_with_arguments --output appimage"
-    hsh-run --mountpoints=/proc $PATH_TO_HASHER -- bash -c "cd /usr/src/tmp && /tmp/linuxdeploy/AppRun --appdir /usr/src/tmp/AppDir --executable $EXECUTABLE --desktop-file $DESKTOP_FILE --icon-file $ICON $plugins_with_arguments --output appimage"
+    echo "/tmp/linuxdeploy/AppRun --appdir /tmp/AppDir --executable $EXECUTABLE --desktop-file $DESKTOP_FILE --icon-file $ICON $plugins_with_arguments --output appimage"
+    hsh-run --mountpoints=/proc $PATH_TO_HASHER -- bash -c "cd /tmp && /tmp/linuxdeploy/AppRun --appdir /tmp/AppDir --executable $EXECUTABLE --desktop-file $DESKTOP_FILE --icon-file $ICON $plugins_with_arguments --output appimage"
 fi
 
-echo -e "Done, you can find your appimage in $PATH_TO_HASHER/chroot/usr/src/tmp/$(hsh-run $PATH_TO_HASHER -- bash -c "ls ~/tmp/ | grep -e \"$PACKAGE_TITLE\" ")"
+echo -e "Done, you can find your appimage in $PATH_TO_HASHER/chroot/tmp/$(hsh-run $PATH_TO_HASHER -- bash -c "ls ~/tmp/ | grep -e \"$PACKAGE_TITLE\" ")"
