@@ -118,12 +118,13 @@ fi
 
 # Make an AppDir
 hsh-run $PATH_TO_HASHER -- bash -c "mkdir /tmp/AppDir"
-
+# Get an .rpm package name
+RPM_PACKAGE_NAME=$(ls $PATH_TO_HASHER/aptbox/var/cache/apt/archives/ | grep -e "$PACKAGE\_")
 
 # Copy RPM to hasher
-cp $PATH_TO_HASHER/aptbox/var/cache/apt/archives/$PACKAGE*.rpm $PATH_TO_HASHER/chroot/tmp/
+cp $PATH_TO_HASHER/aptbox/var/cache/apt/archives/$RPM_PACKAGE_NAME $PATH_TO_HASHER/chroot/tmp/$RPM_PACKAGE_NAME
 # Extract .rpm into appdir
-hsh-run $PATH_TO_HASHER -- bash -c "cd /tmp/AppDir && rpm2cpio /tmp/$PACKAGE*.rpm | cpio -idmv"
+hsh-run $PATH_TO_HASHER -- bash -c "cd /tmp/AppDir && rpm2cpio /tmp/$RPM_PACKAGE_NAME | cpio -idmv"
 
 # Getting desktop file of package
 DESKTOP_FILE+="/tmp/AppDir"
