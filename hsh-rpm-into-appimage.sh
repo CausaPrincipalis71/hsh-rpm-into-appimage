@@ -170,39 +170,34 @@ fi
 if [ ! -d /tmp/linuxdeploy ]
     # Installing linuxdeploy
     then
-    cd /tmp && wget -c -N https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage && chmod +x ./linuxdeploy-x86_64.AppImage && ./linuxdeploy-x86_64.AppImage --appimage-extract && mv ./squashfs-root ./linuxdeploy && cd -
-
-    # adding plugins in linuxdeploy
-    for plugin in ${PLUGINS[*]}
-        do
-        if [[ "$plugin" = "qt" ]] 
-            # Downloading qt plugin and adding it in linuxdeploy 
-            then hsh-install $PATH_TO_HASHER qt5-base-devel qt5-declarative-devel
-            cd /tmp/linuxdeploy/plugins && wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage && chmod +x ./linuxdeploy-plugin-qt-x86_64.AppImage && ./linuxdeploy-plugin-qt-x86_64.AppImage --appimage-extract && mv ./squashfs-root ./linuxdeploy-plugin-qt && cd -
-            ln -s /tmp/linuxdeploy/plugins/linuxdeploy-plugin-qt/AppRun /tmp/linuxdeploy/usr/bin/linuxdeploy-plugin-qt
-        elif [[ "$plugin" = "gtk" ]]
-            #Downloading python plugin and adding it in linuxdeploy
-            then
-            hsh-install $PATH_TO_HASHER libgtk+3-devel librsvg-devel patchelf
-            cd /tmp/linuxdeploy/usr/bin/ && wget https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh && chmod +x ./linuxdeploy-plugin-gtk.sh && cd -
-        elif [[ "$plugin" = "ncurses" ]]
-            #Downloading python plugin and adding it in linuxdeploy
-            then
-            hsh-install $PATH_TO_HASHER libncurses-devel libncurses++-devel termutils-devel 
-            cd /tmp/linuxdeploy/usr/bin/ && wget https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-ncurses/master/linuxdeploy-plugin-ncurses.sh && chmod +x ./linuxdeploy-plugin-ncurses.sh && cd -
-        elif [[ "$plugin" = "gstreamer" ]]
-            #Downloading python plugin and adding it in linuxdeploy
-            then
-            hsh-install $PATH_TO_HASHER gstreamer-devel patchelf
-            cd /tmp/linuxdeploy/usr/bin/ && wget https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gstreamer/master/linuxdeploy-plugin-gstreamer.sh && chmod +x ./linuxdeploy-plugin-gstreamer.sh && cd -
-        elif [[ "$plugin" = "python" ]]
-            #Downloading python plugin and adding it in linuxdeploy
-            then
-            hsh-install $PATH_TO_HASHER gstreamer-devel patchelf
-            cd /tmp/linuxdeploy/usr/bin/ && wget https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gstreamer/master/linuxdeploy-plugin-gstreamer.sh && chmod +x ./linuxdeploy-plugin-gstreamer.sh && cd -
-        fi
-    done
+    cd /tmp && wget -c -N https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage && chmod +x ./linuxdeploy-x86_64.AppImage && ./linuxdeploy-x86_64.AppImage --appimage-extract && mv ./squashfs-root ./linuxdeploy && cd - 
 fi
+
+# adding plugins in linuxdeploy
+for plugin in ${PLUGINS[*]}
+    do
+    if [[ "$plugin" = "qt" ]] 
+        # Downloading qt plugin and adding it in linuxdeploy 
+        then hsh-install $PATH_TO_HASHER qt5-base-devel qt5-declarative-devel
+        cd /tmp/linuxdeploy/plugins && wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage && chmod +x ./linuxdeploy-plugin-qt-x86_64.AppImage && ./linuxdeploy-plugin-qt-x86_64.AppImage --appimage-extract && mv ./squashfs-root ./linuxdeploy-plugin-qt && cd -
+        ln -s /tmp/linuxdeploy/plugins/linuxdeploy-plugin-qt/AppRun /tmp/linuxdeploy/usr/bin/linuxdeploy-plugin-qt
+    elif [[ "$plugin" = "gtk" ]]
+        #Downloading gtk plugin and adding it in linuxdeploy
+        then
+        hsh-install $PATH_TO_HASHER libgtk+3-devel librsvg-devel patchelf
+        cd /tmp/linuxdeploy/usr/bin/ && wget https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh && chmod +x ./linuxdeploy-plugin-gtk.sh && cd -
+    elif [[ "$plugin" = "ncurses" ]]
+        #Downloading ncurses plugin and adding it in linuxdeploy
+        then
+        hsh-install $PATH_TO_HASHER libncurses-devel libncurses++-devel termutils-devel 
+        cd /tmp/linuxdeploy/usr/bin/ && wget https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-ncurses/master/linuxdeploy-plugin-ncurses.sh && chmod +x ./linuxdeploy-plugin-ncurses.sh && cd -
+    elif [[ "$plugin" = "gstreamer" ]]
+        #Downloading gstreamer plugin and adding it in linuxdeploy
+        then
+        hsh-install $PATH_TO_HASHER gstreamer-devel patchelf
+        cd /tmp/linuxdeploy/usr/bin/ && wget https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gstreamer/master/linuxdeploy-plugin-gstreamer.sh && chmod +x ./linuxdeploy-plugin-gstreamer.sh && cd -
+    fi
+done
 
 mv /tmp/linuxdeploy/ $PATH_TO_HASHER/chroot/tmp
 
