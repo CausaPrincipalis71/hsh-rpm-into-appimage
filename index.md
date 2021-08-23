@@ -1,6 +1,6 @@
 # _hsh-rpm-into-appimage/Руководство_
 
-## _Принцип действия_
+## _Принцип действия_ ##
 
 Скрипт пересобирает rpm пакет из sisyphus в формат appimage внутри окружения [hasher](https://www.altlinux.org/Hasher/%D0%A0%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE).
 
@@ -10,39 +10,39 @@ Rpm пакет скачивается из репозитория, и устан
 
 Также linuxdeploy поддерживает систему плагинов, добавляющие необходимые библиотеки фреймворков. Доступные плагины - qt, gtk, ncurses, gstreamer. При их указании, они автоматически загружаются и применяются.
 
-## _Установка_
+## _Установка_ ##
 
 Для установки нужно просто загрузить [скрипт](https://raw.githubusercontent.com/MasterTinka/hsh-rpm-into-appimage/main/hsh-rpm-into-appimage.sh) и сделать его исполняемым.
 
 Предварительно нужно установить и настроить [hasher](https://www.altlinux.org/Hasher/%D0%A0%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE), в том числе настроить [монтирование /proc](https://www.altlinux.org/Hasher/%D0%A0%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE#%D0%9C%D0%BE%D0%BD%D1%82%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5_/proc).
 
-## _Использование_
+## _Использование_ ##
 
 Вывод help -
 
---package [package.rpm] specify the package to repackage
+> --package [package.rpm] specify the package to repackage
 
---plugin [plugin] specify the plugin to use
+> --plugin [plugin] specify the plugin to use
 
-available plugins - qt gtk ncurses gstreamer
+>                    available plugins - qt gtk ncurses gstreamer
 
---apt-config [file] specify the apt configuration file for hasher
+> --apt-config [file] specify the apt configuration file for hasher
 
---path [/path/to/hasher] specify path for hasher
+> --path [/path/to/hasher] specify path for hasher
 
 Обязательным является только параметр --package, остальные имеют значения по умолчанию.
 
---apt-config - /etc/apt/apt.conf
+> --apt-config - /etc/apt/apt.conf
 
---path - /home/$USER/hasher
+> --path - /home/$USER/hasher
 
 Директорию, указанную в параметре --path создавать не обязательно, скрипт попытается её создать автоматически.
 
 Пример использования скрипта -
 
-./hsh-rpm-into-appimage.sh --path /tmp/.private/leonid/hasher --package kde5-ktorrent --plugin qt
+> ./hsh-rpm-into-appimage.sh --path /tmp/.private/leonid/hasher --package kde5-ktorrent --plugin qt
 
-## _Troubleshooting_
+## _Troubleshooting_ ##
 
 1. Ошибка &quot;Please, specify the package&quot; - пакет не указан, проверьте параметр --package
 
