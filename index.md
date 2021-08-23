@@ -1,37 +1,53 @@
-## Welcome to GitHub Pages
+# _hsh-rpm-into-appimage/Руководство_
 
-You can use the [editor on GitHub](https://github.com/MasterTinka/hsh-rpm-into-appimage/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+_Принцип действия_
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+Скрипт пересобирает rpm пакет из sisyphus в формат appimage внутри окружения [hasher](https://www.altlinux.org/Hasher/%D0%A0%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE).
 
-### Markdown
+Rpm пакет скачивается из репозитория, и устанавливается внутрь hasher`а, после чего загруженный пакет распаковывается в директорию AppDir, которая потом будет паковаться в appimage.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+Сборка appimage реализована при помощи [linuxdeploy](https://github.com/linuxdeploy/linuxdeploy), он загружается автоматически в директорию /tmp, linuxdeploy требует указания .desktop файла, исполняемого файла и иконки приложения. Поэтому скрипт ищет .desktop файл, и внутри него необходимые названия, после чего внутри окружения hasher запускается linuxdeploy с указанными файлами.
 
-```markdown
-Syntax highlighted code block
+Также linuxdeploy поддерживает систему плагинов, добавляющие необходимые библиотеки фреймворков. Доступные плагины - qt, gtk, ncurses, gstreamer. При их указании, они автоматически загружаются и применяются.
 
-# Header 1
-## Header 2
-### Header 3
+_Установка_
 
-- Bulleted
-- List
+Для установки нужно просто загрузить [скрипт](https://raw.githubusercontent.com/MasterTinka/hsh-rpm-into-appimage/main/hsh-rpm-into-appimage.sh) и сделать его исполняемым.
 
-1. Numbered
-2. List
+Предварительно нужно установить и настроить [hasher](https://www.altlinux.org/Hasher/%D0%A0%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE), в том числе настроить [монтирование /proc](https://www.altlinux.org/Hasher/%D0%A0%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE#%D0%9C%D0%BE%D0%BD%D1%82%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5_/proc).
 
-**Bold** and _Italic_ and `Code` text
+_Использование_
 
-[Link](url) and ![Image](src)
-```
+Вывод help -
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+--package [package.rpm] specify the package to repackage
 
-### Jekyll Themes
+--plugin [plugin] specify the plugin to use
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/MasterTinka/hsh-rpm-into-appimage/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+available plugins - qt gtk ncurses gstreamer
 
-### Support or Contact
+--apt-config [file] specify the apt configuration file for hasher
 
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+--path [/path/to/hasher] specify path for hasher
+
+Обязательным является только параметр --package, остальные имеют значения по умолчанию.
+
+--apt-config - /etc/apt/apt.conf
+
+--path - /home/$USER/hasher
+
+Директорию, указанную в параметре --path создавать не обязательно, скрипт попытается её создать автоматически.
+
+Пример использования скрипта -
+
+./hsh-rpm-into-appimage.sh --path /tmp/.private/leonid/hasher --package kde5-ktorrent --plugin qt
+
+_Troubleshooting_
+
+1. Ошибка &quot;Please, specify the package&quot; - пакет не указан, проверьте параметр --package
+
+1. Ошибка &quot;Path to hasher doesn`t exist, please create it manually&quot;- скрипту не удалось создать директорию, указанную в параметре --path. Создайте её самостоятельно, или проверьте корректность указанной директории.
+
+1. Ошибка &quot;Please, add allowed\_mountpoints=/proc in /etc/hasher-priv/system&quot; - см. по [ссылке](https://www.altlinux.org/Hasher/%D0%A0%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE#%D0%9C%D0%BE%D0%BD%D1%82%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5_%D1%84%D0%B0%D0%B9%D0%BB%D0%BE%D0%B2%D1%8B%D1%85_%D1%81%D0%B8%D1%81%D1%82%D0%B5%D0%BC_%D0%B2%D0%BD%D1%83%D1%82%D1%80%D0%B8_hasher).
+
+1. Ошибка &quot;Package doesn`t exist, please, check it out&quot; - hsh-install не смог установить указанный пакет, проверьте его корректность.
